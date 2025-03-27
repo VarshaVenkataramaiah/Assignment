@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>🏠 AI Real Estate Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f4f7fa;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    .tab-content {
+      background-color: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+    img#floorplanImage {
+      max-height: 400px;
+      display: block;
+      margin: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container mt-4">
+    <h2 class="text-center mb-4 text-primary">🏠 AI Real Estate Dashboard</h2>
+
+    <!-- Input Form -->
+    <div class="card p-4 mb-4">
+      <h5 class="mb-3">Enter Property Details</h5>
+      <div class="row">
+        <div class="col-md-3"><input type="number" id="inputSize" class="form-control" placeholder="Size (sqft)"></div>
+        <div class="col-md-3"><input type="number" step="0.1" id="inputDemand" class="form-control" placeholder="Demand (0.0 - 1.0)"></div>
+        <div class="col-md-3"><input type="number" id="inputCost" class="form-control" placeholder="Cost ($)"></div>
+        <div class="col-md-3"><input type="text" id="inputLocation" class="form-control" placeholder="Location (e.g. NYC)"></div>
+      </div>
+      <div class="row mt-2">
+        <div class="col-md-6">
+          <select id="inputUseType" class="form-select">
+            <option value="">Select Use Type</option>
+            <option value="Residential">Residential</option>
+            <option value="Commercial">Commercial</option>
+            <option value="Industrial">Industrial</option>
+            <option value="Mixed-use">Mixed-use</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <button class="btn btn-primary w-100" onclick="generateReport()">Generate Report</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs" id="featureTabs" role="tablist">
+      <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#zoning">Zoning</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#scenario">Scenario</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#financial">Financial</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#risk">Risk</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#roi">ROI</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tax">Tax</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#demand">Demand</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#material">Material</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#land">Land</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#investor">Investor</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#recommendation">Recommendation</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#emotional">Emotional Appeal</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#floorplan">Floorplan</button></li>
+    </ul>
+
+    <!-- Tab Contents -->
+    <div class="tab-content mt-3">
+      <div class="tab-pane fade show active" id="zoning"></div>
+      <div class="tab-pane fade" id="scenario"></div>
+      <div class="tab-pane fade" id="financial"></div>
+      <div class="tab-pane fade" id="risk"></div>
+      <div class="tab-pane fade" id="roi"><canvas id="roiChart"></canvas></div>
+      <div class="tab-pane fade" id="tax"></div>
+      <div class="tab-pane fade" id="demand"></div>
+      <div class="tab-pane fade" id="material"></div>
+      <div class="tab-pane fade" id="land"></div>
+      <div class="tab-pane fade" id="investor"></div>
+      <div class="tab-pane fade" id="recommendation"></div>
+      <div class="tab-pane fade" id="emotional">
+        <h5 class="text-center">Emotional Appeal Metrics</h5>
+        <div id="emotionalScores" class="text-center my-3"></div>
+        <canvas id="emotionalChart" width="400" height="200"></canvas>
+      </div>
+      <div class="tab-pane fade" id="floorplan">
+        <img id="floorplanImage" src="static/floorplan/residential.jpg" alt="Floorplan Preview" class="img-fluid mt-3">
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function generateReport() {
+      const size = parseFloat(document.getElementById("inputSize").value);
+      const demand = parseFloat(document.getElementById("inputDemand").value);
+      const cost = parseFloat(document.getElementById("inputCost").value);
+      const location = document.getElementById("inputLocation").value.trim();
+      const useType = document.getElementById("inputUseType").value;
+
+      if (!size || !demand || !cost || !location || !useType) {
+        alert("Please fill all fields");
+        return;
+      }
+
+      const inputData = { size, demand, cost, location, useType };
+
+      try {
+        const res = await fetch("http://127.0.0.1:5000/api/generate-report", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(inputData)
+        });
+
+        const result = await res.json();
+
+        document.getElementById("zoning").innerHTML = result.zoning;
+        document.getElementById("scenario").innerHTML = result.scenario;
+        document.getElementById("financial").innerHTML = result.financial;
+        document.getElementById("risk").innerHTML = result.risk;
+        document.getElementById("tax").innerHTML = result.tax;
+        document.getElementById("demand").innerHTML = result.demandForecast;
+        document.getElementById("material").innerHTML = result.materialEstimate;
+        document.getElementById("land").innerHTML = result.landAcquisition;
+        document.getElementById("investor").innerHTML = result.investorScore;
+        document.getElementById("recommendation").innerHTML = result.recommendation;
+
+        // Emotional Appeal
+        const aesthetic = parseFloat(result.aestheticScore);
+        const amenity = parseFloat(result.amenityScore);
+        const view = parseFloat(result.viewScore);
+
+        document.getElementById("emotionalScores").innerHTML = `
+          <p><strong>Aesthetic:</strong> ${aesthetic.toFixed(1)}</p>
+          <p><strong>Amenity:</strong> ${amenity.toFixed(1)}</p>
+          <p><strong>View:</strong> ${view.toFixed(1)}</p>
+        `;
+
+        const emotionCtx = document.getElementById('emotionalChart').getContext('2d');
+        new Chart(emotionCtx, {
+          type: 'bar',
+          data: {
+            labels: ['Aesthetic', 'Amenity', 'View'],
+            datasets: [{
+              label: 'Score (0-100)',
+              data: [aesthetic, amenity, view],
+              backgroundColor: ['#ff6384', '#36a2eb', '#ffce56']
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: {
+              y: { beginAtZero: true, max: 100 }
+            }
+          }
+        });
+
+        // ROI Chart
+        const roi = parseFloat(result.roi);
+        const risk = parseFloat(result.risk);
+        const investor = parseFloat(result.investorScore);
+
+        const ctx = document.getElementById('roiChart').getContext('2d');
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: ['ROI %', 'Risk Score', 'Investor Score'],
+            datasets: [{
+              label: 'Score',
+              data: [roi, risk * 10, investor],
+              backgroundColor: ['#28a745', '#ffc107', '#007bff']
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              title: {
+                display: true,
+                text: 'ROI vs Risk vs Investor Score'
+              }
+            },
+            scales: {
+              y: { beginAtZero: true, max: 100 }
+            }
+          }
+        });
+
+        // Floorplan image
+        const useTypeMap = {
+          "Residential": "residential",
+          "Commercial": "commercial",
+          "Industrial": "industrial",
+          "Mixed-use": "mixed_use"
+        };
+        const imageName = useTypeMap[useType] || "residential";
+        document.getElementById("floorplanImage").src = `static/floorplan/${imageName}.jpg`;
+
+      } catch (err) {
+        alert("Something went wrong. Please check backend.");
+        console.error(err);
+      }
+    }
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
